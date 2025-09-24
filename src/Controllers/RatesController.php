@@ -16,7 +16,7 @@ final class RatesController
         $data = (array)($request->getParsedBody() ?? []);
         $config = require __DIR__ . '/../Config/config.php';
 
-        // Validate
+        // Validattion
         $errors = RequestValidator::validate($data);
         if (!empty($errors)) {
             $response->getBody()->write(json_encode(['errors' => $errors], JSON_PRETTY_PRINT));
@@ -28,7 +28,6 @@ final class RatesController
         $map = $config['unit_name_to_type_id'];
 
         if (!array_key_exists($unitName, $map)) {
-            // For test/dev: allow explicit override if client passed a "Unit Type ID" field (optional)
             $maybeId = $data['Unit Type ID'] ?? null;
 
             if (!is_int($maybeId)) {

@@ -36,7 +36,7 @@ final class RequestValidator
             }
         }
 
-        // (Optional) Ensure Occupants == count(Ages)
+        // Ensure Occupants == count(Ages)
         if (isset($data['Occupants'], $data['Ages']) && $data['Occupants'] !== count($data['Ages'])) {
             $errors[] = "Occupants must equal the number of entries in Ages.";
         }

@@ -10,7 +10,7 @@ final class RemoteRateClient
 {
     private Client $http;
     private string $url;
-    private string $transport; // json|form
+    private string $transport;
 
     public function __construct(array $remoteConfig)
     {
@@ -23,7 +23,7 @@ final class RemoteRateClient
     }
 
     /**
-     * @param array $payload remote-format payload
+     * @param array $payload 
      * @return array [statusCode, body(array|string)]
      */
     public function postRates(array $payload): array
@@ -32,7 +32,6 @@ final class RemoteRateClient
             $options = [];
 
             if ($this->transport === 'form') {
-                // If the remote endpoint expects application/x-www-form-urlencoded
                 $options['form_params'] = $payload;
             } else {
                 // Default: JSON

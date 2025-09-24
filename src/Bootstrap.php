@@ -12,7 +12,7 @@ final class Bootstrap
     {
         $app = AppFactory::create();
 
-        // Error middleware (dev-friendly defaults)
+        // Error middleware
         $displayErrorDetails = true;
         $logErrors = true;
         $logErrorDetails = true;
