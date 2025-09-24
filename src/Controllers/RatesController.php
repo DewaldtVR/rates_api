@@ -16,39 +16,50 @@ final class RatesController
         $data = (array)($request->getParsedBody() ?? []);
         $config = require __DIR__ . '/../Config/config.php';
 
-        // Validattion
+        // Validate
         $errors = RequestValidator::validate($data);
         if (!empty($errors)) {
             $response->getBody()->write(json_encode(['errors' => $errors], JSON_PRETTY_PRINT));
             return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
-        // Resolve Unit Type ID from Unit Name
-        $unitName = (string)$data['Unit Name'];
+        // Resolve Unit Type ID
         $map = $config['unit_name_to_type_id'];
-
-        if (!array_key_exists($unitName, $map)) {
-            $maybeId = $data['Unit Type ID'] ?? null;
-
-            if (!is_int($maybeId)) {
-                $response->getBody()->write(json_encode([
-                    'errors' => ["Unknown Unit Name '{$unitName}'. Please configure mapping or provide 'Unit Type ID'."],
-                    'hint'   => "For testing, use one of: -2147483637, -2147483456"
-                ], JSON_PRETTY_PRINT));
-                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-            }
-
-            $unitTypeId = $maybeId;
+        $unitTypeId = null;
+        if (isset($data['Unit Type ID']) && is_int($data['Unit Type ID'])) {
+            $unitTypeId = (int)$data['Unit Type ID'];
+        } elseif (isset($data['Unit Name']) && array_key_exists($data['Unit Name'], $map)) {
+            $unitTypeId = $map[$data['Unit Name']];
         } else {
-            $unitTypeId = $map[$unitName];
+            $unknown = (string)($data['Unit Name'] ?? 'N/A');
+            $response->getBody()->write(json_encode([
+                'errors' => ["Unknown Unit. Provide 'Unit Type ID' or a known 'Unit Name'."],
+                'hint'   => "For testing, use one of: -2147483637, -2147483456 (Unit Name was '{$unknown}')"
+            ], JSON_PRETTY_PRINT));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        // Transform dates & ages
-        $arrivalYmd   = PayloadTransformer::dmyToYmd((string)$data['Arrival']);
-        $departureYmd = PayloadTransformer::dmyToYmd((string)$data['Departure']);
-        $guests       = PayloadTransformer::agesToGuests($data['Ages'], $config['adult_age']);
+        // Dates
+        try {
+            $arrivalYmd   = PayloadTransformer::anyToYmd((string)$data['Arrival']);
+            $departureYmd = PayloadTransformer::anyToYmd((string)$data['Departure']);
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['errors' => [$e->getMessage()]], JSON_PRETTY_PRINT));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+        }
 
-        // Build remote payload
+        // Guests
+        $guests = [];
+        if (isset($data['Ages']) && is_array($data['Ages'])) {
+            $guests = PayloadTransformer::agesToGuests($data['Ages'], (int)$config['adult_age']);
+        } else {
+            $adults  = (int)($data['Adults']     ?? 0);
+            $kids613 = (int)($data['Kids 6-13']  ?? 0);
+            $kids05  = (int)($data['Kids 0-5']   ?? 0);
+            $guests  = PayloadTransformer::countsToGuests($adults, $kids613, $kids05);
+        }
+
+        // Remote payload
         $remotePayload = [
             'Unit Type ID' => $unitTypeId,
             'Arrival'      => $arrivalYmd,
@@ -60,16 +71,29 @@ final class RatesController
         $client = new RemoteRateClient($config['remote']);
         [$status, $body] = $client->postRates($remotePayload);
 
-        // Relay back to frontend
+        // Build display-ready summary
+        $summary = [
+            'availability'     => is_array($body) ? PayloadTransformer::availabilityFromRemote($body) : null,
+            'rooms'            => is_array($body) && isset($body['Rooms']) ? (int)$body['Rooms'] : null,
+            'totalCharge'      => is_array($body) && isset($body['Total Charge']) ? (int)$body['Total Charge'] : null,
+            'effectiveDailyMin'=> is_array($body) ? PayloadTransformer::minEffectiveDaily($body) : null,
+            'unitTitle'        => is_array($body) ? PayloadTransformer::parseSpecialRateTitle($body['Legs'][0]['Special Rate Description'] ?? null) : null,
+            'unitTypeId'       => is_array($body) && isset($body['Legs'][0]['Booking Client ID']) ? (int)$body['Legs'][0]['Booking Client ID'] : $unitTypeId,
+            'arrival'          => $arrivalYmd,
+            'departure'        => $departureYmd,
+        ];
+
+        // Relay back
         $response->getBody()->write(json_encode([
             'request' => [
-                'received' => $data,
+                'received'    => $data,
                 'transformed' => $remotePayload,
             ],
             'remote' => [
                 'status' => $status,
-                'body' => $body
-            ]
+                'body'   => $body
+            ],
+            'summary' => $summary
         ], JSON_PRETTY_PRINT));
 
         return $response->withStatus($status >= 200 && $status < 300 ? 200 : 502)

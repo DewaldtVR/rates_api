@@ -5,47 +5,61 @@ namespace App\Validators;
 
 final class RequestValidator
 {
-    /**
-     * Validates inbound payload:
-     * {
-     *  "Unit Name": "String",
-     *  "Arrival": "dd/mm/yyyy",
-     *  "Departure": "dd/mm/yyyy",
-     *  "Occupants": <int>,
-     *  "Ages": [<int>]
-     * }
-     */
     public static function validate(array $data): array
     {
         $errors = [];
 
-        $required = ['Unit Name', 'Arrival', 'Departure', 'Occupants', 'Ages'];
-        foreach ($required as $key) {
-            if (!array_key_exists($key, $data)) {
-                $errors[] = "Missing: {$key}";
-            }
+        foreach (['Arrival', 'Departure'] as $k) {
+            if (!isset($data[$k])) $errors[] = "Missing: {$k}";
         }
 
-        if (isset($data['Occupants']) && (!is_int($data['Occupants']) || $data['Occupants'] < 1)) {
-            $errors[] = "Occupants must be a positive integer.";
+        $hasAges   = array_key_exists('Ages', $data);
+        $hasCounts = array_key_exists('Adults', $data) ||
+                     array_key_exists('Kids 6-13', $data) ||
+                     array_key_exists('Kids 0-5', $data);
+
+        if (!$hasAges && !$hasCounts) {
+            $errors[] = "Provide either 'Ages' array OR the counts: 'Adults', 'Kids 6-13', 'Kids 0-5'.";
         }
 
-        if (isset($data['Ages'])) {
+        if ($hasAges) {
             if (!is_array($data['Ages']) || array_filter($data['Ages'], fn($a) => !is_int($a) || $a < 0)) {
                 $errors[] = "Ages must be an array of non-negative integers.";
             }
         }
 
-        // Ensure Occupants == count(Ages)
-        if (isset($data['Occupants'], $data['Ages']) && $data['Occupants'] !== count($data['Ages'])) {
-            $errors[] = "Occupants must equal the number of entries in Ages.";
+        $intFields = ['Adults', 'Kids 6-13', 'Kids 0-5', 'Occupants'];
+        foreach ($intFields as $f) {
+            if (isset($data[$f]) && (!is_int($data[$f]) || $data[$f] < 0)) {
+                $errors[] = "{$f} must be a non-negative integer.";
+            }
         }
 
-        // Basic dd/mm/yyyy check
-        foreach (['Arrival', 'Departure'] as $dateKey) {
-            if (isset($data[$dateKey]) && !preg_match('#^\d{2}/\d{2}/\d{4}$#', (string)$data[$dateKey])) {
-                $errors[] = "$dateKey must be in dd/mm/yyyy format.";
+        // Occupants check (if available)
+        if (isset($data['Occupants'])) {
+            $occ = (int)$data['Occupants'];
+            if ($hasAges && $occ !== count($data['Ages'])) {
+                $errors[] = "Occupants must equal the number of entries in Ages.";
             }
+            if ($hasCounts) {
+                $sum = (int)($data['Adults'] ?? 0) + (int)($data['Kids 6-13'] ?? 0) + (int)($data['Kids 0-5'] ?? 0);
+                if ($occ !== $sum) {
+                    $errors[] = "Occupants must equal Adults + Kids 6-13 + Kids 0-5.";
+                }
+            }
+        }
+
+        // Date format
+        foreach (['Arrival', 'Departure'] as $dateKey) {
+            if (isset($data[$dateKey]) &&
+                !preg_match('#^(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})$#', (string)$data[$dateKey])) {
+                $errors[] = "$dateKey must be dd/mm/yyyy or yyyy-mm-dd.";
+            }
+        }
+
+        // at least one of Unit Name or Unit Type ID should be present
+        if (!array_key_exists('Unit Name', $data) && !array_key_exists('Unit Type ID', $data)) {
+            $errors[] = "Provide either 'Unit Name' or 'Unit Type ID'.";
         }
 
         return $errors;
