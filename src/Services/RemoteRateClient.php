@@ -17,10 +17,22 @@ final class RemoteRateClient
         $this->url = $remoteConfig['url'];
         $this->transport = $remoteConfig['transport'] ?? 'json';
 
-        $this->http = new Client([
+        $clientOpts = [
             'timeout' => $remoteConfig['timeout'] ?? 20,
-        ]);
+        ];
+
+        // TLS options
+        if (array_key_exists('verify_tls', $remoteConfig)) {
+            if ($remoteConfig['verify_tls'] === false) {
+                $clientOpts['verify'] = false; // ← DEV ONLY
+            } elseif (!empty($remoteConfig['ca_bundle'])) {
+                $clientOpts['verify'] = $remoteConfig['ca_bundle']; // path to cacert.pem
+            }
+        }
+
+        $this->http = new Client($clientOpts);
     }
+
 
     /**
      * @param array $payload 

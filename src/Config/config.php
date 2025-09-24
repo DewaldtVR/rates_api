@@ -11,5 +11,7 @@ return [
         'url'       => $_ENV['REMOTE_RATES_URL'] ?? 'https://dev.gondwana-collection.com/Web-Store/Rates/Rates.php',
         'transport' => $_ENV['REMOTE_TRANSPORT'] ?? 'json',
         'timeout'   => 20,
+        'verify_tls'=> filter_var($_ENV['VERIFY_TLS'] ?? 'true', FILTER_VALIDATE_BOOL),
+        'ca_bundle' => $_ENV['CA_BUNDLE'] ?? null, // optional path to a .pem
     ],
 ];
