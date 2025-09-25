@@ -16,6 +16,21 @@
     "process-timeout": 0
   },
   "scripts": {
-    "start": "php -S localhost:8000 -t public"
+    "post-cmd": [
+      "php -r \"if(!file_exists('.env') && file_exists('.env.example')){copy('.env.example','.env'); echo 'Created .env from .env.example'.PHP_EOL;}\""
+    ],
+    "post-install-cmd": [
+      "@post-cmd"
+    ],
+    "post-update-cmd": [
+      "@post-cmd"
+    ],
+    "start": "php -S 0.0.0.0:8000 -t public public/index.php",
+    "start:local": "php -S 127.0.0.1:8000 -t public public/index.php",
+    "serve": "@start"
+  },
+  "scripts-descriptions": {
+    "start": "Run the PHP dev server on 0.0.0.0:8000 (Codespaces/containers friendly).",
+    "start:local": "Run the PHP dev server on 127.0.0.1:8000 (local machine)."
   }
 }
