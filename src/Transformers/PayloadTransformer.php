@@ -5,6 +5,7 @@ namespace App\Transformers;
 
 final class PayloadTransformer
 {
+    private const AGE_GROUP = 'Age Group';
     /**
      * Accept dd/mm/yyyy OR yyyy-mm-dd and return yyyy-mm-dd
      */
@@ -29,7 +30,7 @@ final class PayloadTransformer
     {
         $guests = [];
         foreach ($ages as $age) {
-            $guests[] = ['Age Group' => ($age >= $adultAge) ? 'Adult' : 'Child'];
+            $guests[] = [self::AGE_GROUP => ($age >= $adultAge) ? 'Adult' : 'Child'];
         }
         return $guests;
     }
@@ -40,8 +41,8 @@ final class PayloadTransformer
     public static function countsToGuests(int $adults, int $kids613, int $kids05): array
     {
         $guests = [];
-        for ($i = 0; $i < $adults; $i++)   $guests[] = ['Age Group' => 'Adult'];
-        for ($i = 0; $i < ($kids613 + $kids05); $i++) $guests[] = ['Age Group' => 'Child'];
+        for ($i = 0; $i < $adults; $i++)   $guests[] = [self::AGE_GROUP => 'Adult'];
+        for ($i = 0; $i < ($kids613 + $kids05); $i++) $guests[] = [self::AGE_GROUP => 'Child'];
         return $guests;
     }
 
@@ -59,7 +60,10 @@ final class PayloadTransformer
     public static function minEffectiveDaily(array $remote): ?int
     {
         $legs = $remote['Legs'] ?? [];
-        if (!is_array($legs) || empty($legs)) return null;
+        if (!is_array($legs) || empty($legs)) 
+    {
+            return null;
+        }
         $vals = array_values(array_filter(array_map(
             fn($l) => is_array($l) && isset($l['Effective Average Daily Rate']) && is_numeric($l['Effective Average Daily Rate'])
                 ? (int)$l['Effective Average Daily Rate'] : null,
@@ -70,9 +74,15 @@ final class PayloadTransformer
 
     public static function parseSpecialRateTitle(?string $desc): ?string
     {
-        if (!$desc) return null;
+        if (!$desc) 
+        {
+                return null;
+        }
         $cleaned = preg_replace('/^\*\s*/', '', $desc);
-        if (!is_string($cleaned)) $cleaned = $desc;
+        if (!is_string($cleaned)) 
+        {
+            $cleaned = $desc;
+        }
         if (preg_match('/-\s*([^-]+)\s*$/', $cleaned, $m)) {
             return trim($m[1]);
         }

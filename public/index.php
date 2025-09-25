@@ -6,7 +6,7 @@ use App\Controllers\RatesController;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-require __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 $app = Bootstrap::create();
 $app->add(function ($req, $handler) {
@@ -16,12 +16,12 @@ $app->add(function ($req, $handler) {
         ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         ->withHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 });
-$app->options('/{routes:.+}', function ($req, $res) {
+$app->options('/{routes:.+}', function ($res) {
     return $res->withHeader('Access-Control-Allow-Origin', '*')
                ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
                ->withHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 });
-$app->get('/', function ($req, $res) {
+$app->get('/', function ($res) {
     $res->getBody()->write(json_encode([
         'name' => 'Rates API',
         'status' => 'ok',
@@ -34,7 +34,7 @@ $app->get('/', function ($req, $res) {
 });
 $app->post('/api/rates', [RatesController::class, 'getRates']);
 
-$app->get('/health', function (Request $req, Response $res) {
+$app->get('/health', function (Response $res) {
     $res->getBody()->write(json_encode(['ok' => true]));
     return $res->withHeader('Content-Type', 'application/json');
 });

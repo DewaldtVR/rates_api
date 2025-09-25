@@ -35,7 +35,7 @@ final class RemoteRateClient
 
 
     /**
-     * @param array $payload 
+     * @param array $payload
      * @return array [statusCode, body(array|string)]
      */
     public function postRates(array $payload): array

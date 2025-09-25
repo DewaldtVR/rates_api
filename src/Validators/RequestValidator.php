@@ -5,30 +5,33 @@ namespace App\Validators;
 
 final class RequestValidator
 {
+    private const KIDS_6_13 = 'Kids 6-13';
+    private const KIDS_0_5 = 'Kids 0-5';
     public static function validate(array $data): array
     {
         $errors = [];
 
         foreach (['Arrival', 'Departure'] as $k) {
-            if (!isset($data[$k])) $errors[] = "Missing: {$k}";
+            if (!isset($data[$k]))
+            {
+                $errors[] = "Missing: {$k}";
+            }
         }
 
         $hasAges   = array_key_exists('Ages', $data);
         $hasCounts = array_key_exists('Adults', $data) ||
-                     array_key_exists('Kids 6-13', $data) ||
-                     array_key_exists('Kids 0-5', $data);
+                     array_key_exists(self::KIDS_6_13, $data) ||
+                     array_key_exists(self::KIDS_0_5, $data);
 
         if (!$hasAges && !$hasCounts) {
             $errors[] = "Provide either 'Ages' array OR the counts: 'Adults', 'Kids 6-13', 'Kids 0-5'.";
         }
 
-        if ($hasAges) {
-            if (!is_array($data['Ages']) || array_filter($data['Ages'], fn($a) => !is_int($a) || $a < 0)) {
-                $errors[] = "Ages must be an array of non-negative integers.";
-            }
+        if ($hasAges && !is_array($data['Ages']) || array_filter($data['Ages'], fn($a) => !is_int($a) || $a < 0)) {
+            $errors[] = "Ages must be an array of non-negative integers.";
         }
 
-        $intFields = ['Adults', 'Kids 6-13', 'Kids 0-5', 'Occupants'];
+        $intFields = ['Adults', self::KIDS_6_13, self::KIDS_0_5, 'Occupants'];
         foreach ($intFields as $f) {
             if (isset($data[$f]) && (!is_int($data[$f]) || $data[$f] < 0)) {
                 $errors[] = "{$f} must be a non-negative integer.";
@@ -42,7 +45,7 @@ final class RequestValidator
                 $errors[] = "Occupants must equal the number of entries in Ages.";
             }
             if ($hasCounts) {
-                $sum = (int)($data['Adults'] ?? 0) + (int)($data['Kids 6-13'] ?? 0) + (int)($data['Kids 0-5'] ?? 0);
+                $sum = (int)($data['Adults'] ?? 0) + (int)($data[self::KIDS_6_13] ?? 0) + (int)($data[self::KIDS_0_5] ?? 0);
                 if ($occ !== $sum) {
                     $errors[] = "Occupants must equal Adults + Kids 6-13 + Kids 0-5.";
                 }

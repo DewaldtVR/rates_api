@@ -3,7 +3,7 @@
         'name' => 'yourvendor/rates-api',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '61dea6eca9f18241c0fd76974682792edd942b4b',
+        'reference' => '81a0dd3bcd2979ffdbc29f2397bfda3b76d0a4ab',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -231,7 +231,7 @@
         'yourvendor/rates-api' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '61dea6eca9f18241c0fd76974682792edd942b4b',
+            'reference' => '81a0dd3bcd2979ffdbc29f2397bfda3b76d0a4ab',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
