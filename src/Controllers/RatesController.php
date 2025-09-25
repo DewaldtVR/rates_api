@@ -7,11 +7,12 @@ use App\Services\RemoteRateClient;
 use App\Transformers\PayloadTransformer;
 use App\Validators\RequestValidator;
 use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 final class RatesController
 {
     private const UNIT_NAME = 'Unit Name';
     private const UNIT_TYPE_ID = 'Unit Type ID';
-    public function getRates(Response $response): Response
+    public function getRates(Request $request, Response $response, array $args = []): Response
     {
         $config = require_once __DIR__ . '/../Config/config.php';
 
